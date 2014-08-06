@@ -1,0 +1,226 @@
+06 Aug 2014
+
+Changes for GitHub post.
+
+
+05 Dec 2011
+
+Version for Arduino 1.0
+
+17 Sep 2011
+
+Changes for future Arduino 1.0 IDE.
+
+print(uint8_t) -> write(uint8_t)
+
+Improved SPI handling
+
+Include Arduino.h instead of WProgram.h if Areduio 1.0.
+
+9 Oct 2010
+
+Added ATmega2560 Mega
+
+26 Aug 2010
+
+Fixed Chip select bug.
+
+18 Aug 2010
+
+Added the following function to allow the SD chip select pin to be set
+at runtime.  Warning - if the hardware SS pin is not used as chip select,
+the hardware SS pin will be set to output mode by init(). An avr processor
+will not function as an SPI master unless SS is set to output mode.
+
+uint8_t SdCard::init(uint8_t speed, uint8_t chipSelectPin);
+
+Optimized write() for faster append.
+
+Replaced many #define's with const data or inline functions.
+
+05 Jul 2010
+
+Added the following  function to cancel date/time callback. This function
+must now be used instead of dateTimeCallback(NULL).
+
+static void Fat16::dateTimeCallbackCancel(void);
+
+The following Fat16 member functions have been added for users who wish to
+avoid calls to functions with non-const references.
+
+static void Fat16::dateTimeCallback(
+  void (*dateTime)(uint16_t* date, uint16_t* time));
+uint8_t Fat16::dirEntry(dir_t* dir);
+static uint8_t Fat16::init(SdCard* dev);
+static uint8_t Fat16::init(SdCard* dev, uint8_t part);
+static uint8_t Fat16::readDir(dir_t* dir, uint16_t* index, uint8_t skip);
+
+The following Fat16 member functions have been marked as deprecated since they
+are now wrappers for the new functions. dateTimeCallback is the only wrapper
+with extra overhead.  The other wrappers are squeezed out by the complier.
+
+static void Fat16::dateTimeCallback(
+  void (*dateTime)(uint16_t& date, uint16_t& time));
+uint8_t Fat16::dirEntry(dir_t& dir);
+static uint8_t Fat16::init(SdCard& dev);
+static uint8_t Fat16::init(SdCard& dev, uint8_t part);
+static uint8_t Fat16::readDir(dir_t& dir, uint16_t& index, uint8_t skip);
+
+The deprecated function can be disabled by editing Fat16config.h and setting
+#define ALLOW_DEPRECATED_FUNCTIONS 0
+
+Fixed file modify time for file rewrite.
+
+Removed old version of SdCard::init().
+
+Always compile SD info functions.
+
+Major internal cleanup/reformat based on Google cpplint.py code style.
+
+Modified examples to eliminate deprecated functions.
+
+Several changes to debug functions including SdCard::readCID() and 
+Fat16::dbgSetDev().
+
+28 Nov 2009
+
+New algorithm for SdCard::init().  If this causes problems set SD_INIT_OLD_VER
+nonzero in Fat16Config.h.  Please contact me if you have problems with the new
+SdCard::init() since I plan to remove the old version in the next release.
+
+Major changes to timeouts in SdCard class in an effort to support cards like
+Dane-Elec that have horrible SPI write performance.
+
+Added more error printouts to examples.
+
+Added examples fat16bench.pde, fat16ls.pde, and fat16timestamp.pde.
+
+Added the following functions:
+
+dirEntry() - return a files directory entry.
+
+ls() - list files to Serial
+
+printDirName(), printFatDate(), printFatTime(), printTwoDigits() - Utility
+functions used by ls()
+
+Fat16::remove(char *fileName) - remove the named file.
+
+dateTimeCallback, timestamp()- set file timestamps.
+
+Cleaned up open() and write() code.
+
+Fix bug in truncate().
+
+
+25 Sep 2009
+
+This is a major update of fat16lib that is more like the Open Group standard
+for file systems. Open Group maintains standards for UNIX, POSIX, BSD, and
+Linux.  
+
+Functions to remove and truncate files have been added. Functions have been
+added to write strings from RAM and PROGMEM.  File creation has been moved to
+open().
+
+The member variable writeByteError has been replaced by the variable writeError
+which is an error flag for all write functions.  You can use it after a series
+of print and write calls to check for an error.
+
+The main change for users will be how file position is handled.  The previous
+version maintained a read position but all writes were appends at end-of-file.
+This is not the usual file system implementation.
+
+The new version has a single position for read and write.  This will allow
+rewrite of file data, which is required for some apps.  When a file is opened
+for write, you must position it to the desired position.
+
+seek() has been changed to seekSet(), seekCur() and seekEnd(). These
+functions now control a single file position for read and write.
+
+The new version of open() is: uint8_t open(const char *name, uint8_t oflag).
+
+oflag is the bit-wise or these values.
+
+O_READ 
+    Open for reading.
+
+O_RDONLY
+    Same as O_READ
+
+O_WRITE
+    Open for writing.
+
+O_WRONLY
+    Same as O_WRITE
+
+O_RDWR
+    Open for reading and writing. 
+
+O_APPEND
+    If set, the file offset shall be set to the end of the file prior to
+    each write.
+
+O_CREAT
+    If the file exists, this flag has no effect except as noted under O_EXCL
+    below. Otherwise, the file shall be created.
+
+O_EXCL 
+    If O_CREAT and O_EXCL are set, open() shall fail if the file exists.
+
+O_SYNC
+    Call sync() after each write.  This can cause huge performance problems
+    with print, write_P, and writeln_P.
+
+O_TRUNC
+    If the file exists and is a regular file, and the file is successfully
+    opened and is not read only, its length shall be truncated to 0.
+    
+The following inline functions and macro would provide some backward
+compatibility with the previous version.
+
+#define writeByteError writeError
+uint8_t create(char *name) {return open(name, O_CREAT | O_EXCL | O_RDWR);}
+uint8_t open(char *name) {return open(name, O_APPEND | O_RDWR);}
+uint8_t open(uint16_ index) {return open(index, O_APPEND | O_RDWR);}
+uint8_t seek(uint32_t pos) {return seekSet(pos);}
+
+I decided not to add them since they are not strictly backward compatible.
+Also some applications can be simplified by using new features.
+
+Many new examples have been added to illustrate how to use this version and
+the documentation has been updated.
+
+The SdCard class has been optimized for performance and error processing has
+been improved.
+
+File creation, modification and last access date are initialized to 2000-01-01
+at midnight when a file is created.  This may be modified in Fat16config.h.
+
+
+
+17 Sep 09
+
+Fixed bug in seek and in open existing file for append.
+
+15 Jun 09
+
+Added cast to fix bug of compiler using 16 bit multiply in 32 bit expression.
+
+19 May 09
+
+New and updated examples.
+
+Added Fat16::byteWriteError to provide error check for print.
+
+First shot at Mega support.
+
+New version of Fat16::readDir().
+
+13 Apr 09
+
+Improved SD card init, mods for Sanguino
+
+25 Dec 08
+
+First version
